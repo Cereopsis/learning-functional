@@ -1,10 +1,11 @@
+import JStream._
 sealed trait JStream[+A] { self =>
 
   def toList: List[A] = foldLeft(List[A]())(_ :: _).reverse
 
   def take(n: Int): JStream[A] = self match {
-    case Cons(a, t) if n > 0 => JStream.cons(a(), t().take(n - 1))
-    case _ => JStream.empty
+    case Cons(h, t) if n > 0 => cons(h(), t().take(n - 1))
+    case _ => empty
   }
 
   def drop(n: Int): JStream[A] = self match {
@@ -13,59 +14,47 @@ sealed trait JStream[+A] { self =>
   }
 
   def takeWhile(p: A => Boolean): JStream[A] =
-    foldRight(JStream.empty: JStream[A]){ (a,b) => 
-      if (p(a)) JStream.cons(a, b)
-      else b
-    }
+    foldRight(empty[A])((h,t) => if (p(h)) cons(h, t) else t)
 
   def dropWhile(p: A => Boolean): JStream[A] = self match {
-    case Cons(a, t) if p(a()) => t().dropWhile(p)
+    case Cons(h, t) if p(h()) => t().dropWhile(p)
     case _ => self
   }
 
   def exists(p: A => Boolean): Boolean =
-    foldRight(false)((a,b) => p(a) || b)
+    foldRight(false)((h,t) => p(h) || t)
 
   def forAll(p: A => Boolean): Boolean =
-    foldRight(true)((a,b) => p(a) && b)
+    foldRight(true)((h,t) => p(h) && t)
 
   def foldLeft[B](z: B)(f: (A, => B) => B): B = self match {
-    case Cons(a, t) => t().foldLeft(f(a(), z))(f)
+    case Cons(h, t) => t().foldLeft(f(h(), z))(f)
     case _ => z
   }
 
   def foldRight[B](z: B)(f: (A, => B) => B): B = self match {
-    case Cons(a, t) => f(a(), t().foldRight(z)(f))
+    case Cons(h, t) => f(h(), t().foldRight(z)(f))
     case _ => z
   }
 
   def headOption: Option[A] =
-    foldRight(None: Option[A]){ (a,b) =>
-      if (a == Empty) b
-      else Some(a)
+    foldRight(None: Option[A]){ (h,t) =>
+      if (h == empty) t
+      else Some(h)
     }
 
   def map[B](f: A => B): JStream[B] =
-    foldRight(JStream.empty: JStream[B]){ (a, b) =>
-      JStream.cons(f(a), b)
-    }
+    foldRight(empty[B])((h, t) => cons(f(h), t))
 
   def filter(p: A => Boolean): JStream[A] =
-    foldRight(JStream.empty: JStream[A]){ (a,b) =>
-      if (p(a)) JStream.cons(a, b)
-      else b
-    }
+    foldRight(empty[A])((h,t) => if (p(h)) cons(h, t) else t)
 
-  def append[AA >: A](a: => AA): JStream[AA] =
-    foldRight(JStream.cons(a, JStream.empty)){ (aa,b) => 
-      JStream.cons(aa, b)
-    }
+  def append[B >: A](a: => JStream[B]): JStream[B] =
+    foldRight(a)((h,t) => cons(h, t))
 
-  // TODO: fix flatMap
-  // def flatMap[B](f: A => JStream[B]): JStream[B] =
-  //   foldRight(JStream.empty: JStream[B]){ (a,b) =>
-  //     f(a)
-  //   }
+  def flatMap[B](f: A => JStream[B]): JStream[B] =
+    foldRight(empty[B])((h,t) => f(h) append t)
+
 }
 
 final case object Empty extends JStream[Nothing]
