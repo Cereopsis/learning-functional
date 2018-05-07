@@ -34,9 +34,10 @@ def run[A,B](
   ): Future[B] = eval.value collect pf
   
 
-val tr = Trace("123456", networkOp("GET localhost:8080 /"))
+val tr1 = Trace("123456", networkOp("GET localhost:8080 /"))
+val tr2 = Trace("123456", networkOp[String](throw new java.io.IOException("WTF!"), 1000L))
 
-run(tr){
+run(tr1){
    case r if r.startsWith("GET") => "Hoo Ha!"
  } onComplete {
    case Success(s) => println(s)
