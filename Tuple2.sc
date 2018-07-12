@@ -11,8 +11,8 @@
   def map2[A,B](a: Option[A], b: Option[A], f: A => Option[B]): Option[(B,B)] =
     for {
       l <- a
-      left <- f(l)
       r <- b
+      left <- f(l)
       right <- f(r)
     } yield (left, right)
 
