@@ -47,4 +47,4 @@
    *  @param f [[Try]] function
    *  @param a input to f
    */
-  def curryT[A,B](f: A => Try[B]): A => Option[B] = { a => f(a).toOption }
+  def curryTry[A,B](f: A => Try[B]): A => Option[B] = { a => f(a).toOption }
